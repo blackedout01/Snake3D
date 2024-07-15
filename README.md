@@ -1,8 +1,8 @@
 # Snake3D
 
-Recently I stumbled upon the [Snake3D game](https://github.com/IntegratedQuantum/Snake3D) by @IntegratedQuantum and thought I could share my version as well.
+Recently I stumbled upon the [Snake3D game](https://github.com/IntegratedQuantum/Snake3D) by [@IntegratedQuantum](https://github.com/IntegratedQuantum) and thought I could share my version as well.
 
-At some point in high school we challenged each other to make a 3D snake game over the weekend because we had already mastered the 2D snake game. Even before showing each other the results in class, we talked a bit about our controls and were both left confused. The presentation was quite a surprise. Turns out, we had totally different ideas of what 3D snake actually means. @IntegratedQuantum made the snake move on the surface of a cube and I made the snake move inside of a cube by extending the game field into the third dimension:
+At some point in high school we challenged each other to make a 3D snake game over the weekend because we had already mastered the 2D snake game. Even before showing each other the results in class, we talked a bit about our controls and were both left confused. The presentation was quite a surprise. Turns out, we had totally different ideas of what 3D snake actually means. [@IntegratedQuantum](https://github.com/IntegratedQuantum) made the snake move on the surface of a cube and I made the snake move inside of a cube by extending the game field into the third dimension:
 
 ![Image of the Snake3D game](img/midgame.png)
 

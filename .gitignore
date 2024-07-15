@@ -2,3 +2,6 @@
 *.obj
 *.pdb
 *.exe
+
+*.out
+*.out.dSYM

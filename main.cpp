@@ -1,15 +1,21 @@
 /* Author: blackedout01
  *
  * Version History
- * V0.1.1 (2024-07-13) - replaced name of author with blackedout01, translated title to english
+ * V0.1.2 (2024-07-15) - added macOS support, switched to GLFW 3.4, removed call to glfwGetMouseButton from render thread
+ * V0.1.1 (2024-07-13) - replaced my actual name with blackedout01, translated title to english
  * V0.1.0 (2017-11-11) - first version
  */
 
-#include <GLFW\glfw3.h>
-#include <glm\glm.hpp>
-#include <glm\gtc\matrix_transform.hpp>
+#include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+#ifdef __APPLE__
+#include <OpenGL/OpenGL.h>
+#endif
 
 #include <array>
+#include <thread>
 #include <mutex>
 #include <random>
 #include <ctime>
@@ -80,7 +86,7 @@ namespace ApplicationSettings
 #endif
 
 	// Defines the name of the application.
-	constexpr const char *NAME_STRING = "Snake3D V0.1.1 by blackedout01 (Controls: W/A/S/D/Space/Shift/Mouse)";
+	constexpr const char *NAME_STRING = "Snake3D V0.1.2 by blackedout01 (Controls: W/A/S/D/Space/Shift/Mouse)";
 
 	// Defines the minimum width of the created window.
 	constexpr int WINDOW_MIN_WIDTH = 940;
@@ -100,6 +106,12 @@ namespace ApplicationSettings
 
 namespace Debug
 {
+	template<typename T>
+	void clog(T first)
+	{
+		::std::clog << first;
+	}
+
 	template<typename T, typename ...Args>
 	void clog(T first, Args ...args)
 	{
@@ -108,9 +120,9 @@ namespace Debug
 	}
 
 	template<typename T>
-	void clog(T first)
+	void cerr(T first)
 	{
-		::std::clog << first;
+		::std::cerr << first;
 	}
 
 	template<typename T, typename ...Args>
@@ -118,12 +130,6 @@ namespace Debug
 	{
 		::std::cerr << first;
 		cerr(args ...);
-	}
-
-	template<typename T>
-	void cerr(T first)
-	{
-		::std::cerr << first;
 	}
 }
 #else
@@ -319,6 +325,8 @@ namespace su
 
 AppData::AppData()
 {
+	glfwSetErrorCallback(onGlfwErrorEvent);
+
 	// GLFW
 	if (glfwInit() == GLFW_FALSE)
 		Debug::cerr("Error while initializing GLFW.\n");
@@ -334,6 +342,7 @@ AppData::AppData()
 	glfwSetWindowUserPointer(window, this);
 
 	// Window icon
+#ifndef __APPLE__
 	{
 		constexpr size_t ICON_WIDTH = 16;
 		constexpr size_t ICON_HEIGHT = 16;
@@ -395,6 +404,7 @@ AppData::AppData()
 
 		glfwSetWindowIcon(window, 1, &icon);
 	}
+#endif
 
 	// Set window callbacks
 	glfwSetWindowPosCallback(window, windowPositionCallback);
@@ -413,8 +423,6 @@ AppData::AppData()
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetCharCallback(window, charCallback);
 	glfwSetCharModsCallback(window, charModsCallback);
-
-	glfwSetErrorCallback(onGlfwErrorEvent);
 
 	glfwMakeContextCurrent(0);
 }
@@ -1040,6 +1048,7 @@ void mainThread(void *data)
 
 	float width = 0.0f, height = 0.0f;
 	bool shouldClose = false;
+	bool leftMouseButtonDown = false;
 
 	double ticker = 0.0;
 	double frameStart = 0.0;
@@ -1073,9 +1082,12 @@ void mainThread(void *data)
 				case Event::Type::FramebufferSizeEvent:
 					break;
 				case Event::Type::MouseButtonEvent:
+					if(e.mouseButtonEventArgs.button == GLFW_MOUSE_BUTTON_LEFT) {
+						leftMouseButtonDown = e.mouseButtonEventArgs.action != GLFW_RELEASE;
+					}
 					break;
 				case Event::Type::CursorPositionEvent:
-					if (glfwGetMouseButton(appData.window, GLFW_MOUSE_BUTTON_LEFT))
+					if (leftMouseButtonDown)
 					{
 						float dx = static_cast<float>(lmx - e.cursorPositionEventArgs.xpos);
 						float dy = static_cast<float>(lmy - e.cursorPositionEventArgs.ypos);
@@ -1169,11 +1181,18 @@ void mainThread(void *data)
 					break;
 				case Event::Type::CharModsEvent:
 					break;
+				default:
+					break;
 				}
 			}
 			appData.eventQueue.clear();
 		}
 		
+#ifdef __APPLE__
+		// NOTE(blackedout): Fix for https://github.com/glfw/glfw/issues/1997
+		CGLContextObj cglContext = CGLGetCurrentContext();
+   		CGLLockContext(cglContext);
+#endif
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 pMatGame = glm::perspective(glm::half_pi<float>() * 0.5f, width / height, 0.1f, 100.0f);
@@ -1410,8 +1429,12 @@ void mainThread(void *data)
 		}
 
 		glEnd();
-
+		
 		glfwSwapBuffers(appData.window);
+
+#ifdef __APPLE__
+		CGLUnlockContext(cglContext);
+#endif
 
 		double currTime = glfwGetTime();
 		deltaTime = currTime - frameStart;
@@ -1455,7 +1478,7 @@ int main()
 
 void onGlfwErrorEvent(int error, const char *description)
 {
-	Debug::cerr("Error ", error, ": ", description);
+	Debug::cerr("Error ", error, ": ", description, '\n');
 }
 
 // Window events
